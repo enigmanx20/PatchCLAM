@@ -6,6 +6,11 @@ Rewritten CLAM (https://github.com/mahmoodlab/CLAM) for path-based datasets.
 - Simple framework for [CLAM](https://github.com/mahmoodlab/CLAM), [ABMIL](https://github.com/AMLab-Amsterdam/AttentionDeepMIL), scaled dot-product attention, and average pooling.
 - Square attention matrix implementation inspired by [TransMIL](https://proceedings.neurips.cc/paper/2021/file/10c272d06794d3e5785d5e7c5356e9ff-Paper.pdf).
 
+## Prerequisites
+- torch>=2.2.0
+- torchvision
+- tqdm
+
 ## How to Use
 Load model and define criterion.
 ```

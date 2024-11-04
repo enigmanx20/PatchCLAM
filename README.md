@@ -27,14 +27,14 @@ instance_mask   = torch.zeros_like(inst_logit).to(inst_logit.device)
 for p_index, n_index in zip(top_p_ids, top_n_ids):
     if p_index.dim() > 1: # CLAM-MB
         instance_target[p_index[labels.item()], labels] = 1.
-        if train_config['model_config']['subtyping']:
+        if mil_configs.clam_config['subtyping']:
             instance_mask[p_index[labels.item()], :] = 1. 
         else:
             instance_mask[p_index[labels.item(), :], labels] = 1. 
         instance_mask[n_index[labels.item()], labels] = 1.
     else: # CLAM-SB
         instance_target[p_index, labels] = 1.
-        if train_config['model_config']['subtyping']:
+        if mil_configs.clam_config['subtyping']:
             instance_mask[p_index] = 1.         
         else:
             instance_mask[p_index, labels] = 1. 

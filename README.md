@@ -4,7 +4,7 @@ Rewritten CLAM (https://github.com/mahmoodlab/CLAM) for path-based datasets.
 ## Strength
 - Easy to understand and modify.
 - Simple framework for [CLAM](https://github.com/mahmoodlab/CLAM), [ABMIL](https://github.com/AMLab-Amsterdam/AttentionDeepMIL), scaled dot-product attention, and average pooling.
-- Square attention matrix inspired by [TransMIL](https://proceedings.neurips.cc/paper/2021/file/10c272d06794d3e5785d5e7c5356e9ff-Paper.pdf).
+- Square attention matrix implementation inspired by [TransMIL](https://proceedings.neurips.cc/paper/2021/file/10c272d06794d3e5785d5e7c5356e9ff-Paper.pdf).
 
 ## How to Use
 Load model and define criterion.

@@ -1,8 +1,8 @@
 # standard CLAM config
 clam_config ={
-    "clam_type": "SB", # "SB" or "MB"
+    "clam_type": "SB", # "SB" or "MB", meaning "single-branch" and "multi-branch"
     "atten_type": "3fc", # "2fc" is non-gated attention and "3fc" is gated attention
-    "apply_max" : False,
+    "apply_max" : False, # apply max pooling to attention matrix
     "drop_out" : 0.25,
     "k_sample" : 8,
     "n_classes": 3,

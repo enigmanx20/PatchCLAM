@@ -75,7 +75,7 @@ class MILMNISTDataset(Dataset):
 
         return instances, bag_label
 
-
+# copied from https://github.com/mahmoodlab/CLAM/blob/master/models/resnet_custom_dep.py
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 import torch

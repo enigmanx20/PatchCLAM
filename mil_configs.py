@@ -5,7 +5,7 @@ clam_config ={
     "apply_max" : False, # apply max pooling to attention matrix
     "drop_out" : 0.25,
     "k_sample" : 8,
-    "n_classes": 3,
+    "n_classes": 3, # number of classes. Set 3 for MNIST [6, 8, 9] classification demo.
     "subtyping": False,
 }
 

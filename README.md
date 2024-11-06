@@ -12,7 +12,7 @@ Rewritten CLAM (https://github.com/mahmoodlab/CLAM) for path-based datasets.
 - tqdm (for MNIST demo)
 
 ## Release Notes
--2024.11.06 Major bug fixed. Softmax to attention matrix is applied to diagonal elements for Attn_Net and Attn_Net_Gated. Incorrect AvgPool is fixed. 
+- 2024.11.06 Major bug fixed. Softmax to attention matrix is applied to diagonal elements for Attn_Net and Attn_Net_Gated. Incorrect AvgPool is fixed. 
 
 ## Benchmarks
 Underway...

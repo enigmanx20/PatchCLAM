@@ -7,9 +7,15 @@ Rewritten CLAM (https://github.com/mahmoodlab/CLAM) for path-based datasets.
 - Square attention matrix implementation inspired by [TransMIL](https://proceedings.neurips.cc/paper/2021/file/10c272d06794d3e5785d5e7c5356e9ff-Paper.pdf).
 
 ## Prerequisites
-- torch>=2.2.0
-- torchvision
-- tqdm
+- torch>=1.8.0
+- torchvision (for MNIST demo)
+- tqdm (for MNIST demo)
+
+## Release Notes
+-2024.11.06 Major bug fixed. Softmax to attention matrix is applied to diagonal elements for Attn_Net and Attn_Net_Gated. Incorrect AvgPool is fixed. 
+
+## Benchmarks
+Underway...
 
 ## How to Use
 Load model and define criterion.

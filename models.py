@@ -2,19 +2,43 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+class DiagonalSoftmax(torch.nn.Module):
+    def __init__(self):
+        super(DiagonalSoftmax, self).__init__()
+
+    def forward(self, x):
+        assert x.dim() == 3 and (x.shape[1] == x.shape[2])
+        diag_elements = torch.diagonal(x, dim1=1, dim2=2)  # BxN
+        diag_softmax = torch.softmax(diag_elements, dim=-1)  # BxN
+        output = x.clone()
+        for i in range(x.shape[1]):
+            output[:, i, i] = diag_softmax[:, i]
+        return output
+    
+class Softmax2d(torch.nn.Module):
+    def __init__(self):
+        super(Softmax2d, self).__init__()
+
+    def forward(self, x):
+        assert x.dim() == 3
+        B, N, _ = x.shape
+        x_reshaped = x.view(B, -1)  # Flatten the NxN to a 2D shape (B, N^2)
+        softmax_output = torch.nn.functional.softmax(x_reshaped, dim=1)  # Apply along the last dimension
+        output = softmax_output.view(B, N, N)
+        return output
+
 class Avg_Pool(nn.Module):
     def __init__(self, dropout = 0.0, n_classes = 1, **kwargs):
         super(Avg_Pool, self).__init__()
         self.n_classes = n_classes
         self.attn_drop = nn.Dropout(dropout)
-
+        self.activation = nn.Identity()
     def forward(self, x):
         """
         A: attention matrix CxNxN, where NxN matrices are diagonal
         """
         N = x.size(0)
-        A = A.repeat(1, N).view(self.n_classes, N, N) * \
-            torch.eye(N).to(x.device, x.dtype).view(1, N, N).repeat(self.n_classes, 1, 1)
+        A = torch.eye(N).to(x.device, x.dtype).view(1, N, N).repeat(self.n_classes, 1, 1) / N
         A = self.attn_drop(A)
         return A, x 
 
@@ -36,6 +60,7 @@ class Attn_Net(nn.Module):
                                         nn.Linear(D, n_classes, bias=True)
                                         ])
         self.n_classes = n_classes
+        self.activation = DiagonalSoftmax()
 
     def forward(self, x):
         """
@@ -75,6 +100,7 @@ class Attn_Net_Gated(nn.Module):
         self.attention_c = nn.Linear(D, n_classes, bias=True)
 
         self.n_classes = n_classes
+        self.activation = DiagonalSoftmax()
 
     def forward(self, x):
         """
@@ -92,7 +118,7 @@ class Attn_Net_Gated(nn.Module):
     
 class Attn_Net_SDP(nn.Module):
     """
-    Scaled dot-product attention
+    Scaled dot-product attention (qk attention)
     args:
         L: input feature dimension
         D: hidden layer dimension
@@ -108,11 +134,12 @@ class Attn_Net_SDP(nn.Module):
         self.k_proj = nn.Linear(L, D*n_classes, bias=True)
 
         self.attn_drop = nn.Dropout(dropout)
+        self.activation = Softmax2d()
 
     def _separate_heads(self, x, num_heads):
-        N, D = x.shape
-        x = x.reshape(N, num_heads, D // num_heads)
-        return x  # N x C x D
+        N, cD = x.shape
+        x = x.reshape(N, num_heads, cD // num_heads)
+        return x  # NxCxD
 
     def forward(self, x):
         """
@@ -130,7 +157,6 @@ class Attn_Net_SDP(nn.Module):
         A = self.attn_drop(A)
 
         return A, x
-
 
 class CLAM_SB(nn.Module):
     """
@@ -200,7 +226,7 @@ class CLAM_SB(nn.Module):
         A: CxNxN
         """
         C, N, _ = A.size()
-        A = F.softmax(A.view(C, -1), dim=-1).view(C, N, N)  # softmax over attention matrix
+        A = self.attention_net.activation(A)
         A = A.sum(dim=-1) # CxN
         top_p_ids = torch.topk(A, self.k_sample, dim=1)[1]  #CxK
         top_n_ids = torch.topk(-A, self.k_sample, dim=1)[1] #CxK
@@ -228,7 +254,7 @@ class CLAM_SB(nn.Module):
         A: CxNxN
         """
         C, N, _ = A.size()
-        A = F.softmax(A.view(C, -1), dim=1).view(C, N, N)  # softmax over attention matrix
+        A = self.attention_net.activation(A)
         M = (A @ h).sum(dim=1) # CxNxL ->CxL
         logits = self.classifiers(M) # 1xL -> 1xC
         
@@ -283,9 +309,8 @@ class CLAM_MB(CLAM_SB):
         A: CxNxN
         """
         C, N, _ = A.size()
-        A = F.softmax(A.view(C, -1), dim=1).view(C, N, N)  # softmax over attention matrix
+        A = self.attention_net.activation(A)
         M = (A @ h).sum(dim=1) # CxNxL ->CxL
-        #print(M.size())
         logits = self.classifiers(M.unsqueeze(0)) # 1xCxL -> 1xC
         
         return logits.view(-1, self.n_classes)
@@ -294,7 +319,8 @@ class CLAM_MB(CLAM_SB):
 class ClamWrapper(nn.Module):
     def __init__(self, clam_config, base_encoder=None, num_enmedding_features=1024):
         super(ClamWrapper, self).__init__()
-        self.encoder = base_encoder    
+        assert clam_config['clam_type'] in ['SB', 'MB']
+        self.encoder = base_encoder
 
         if clam_config['clam_type'] == 'SB':
             self.clam = CLAM_SB(atten_type=clam_config['atten_type'], num_features=num_enmedding_features, dropout=clam_config['drop_out'], 
@@ -302,13 +328,25 @@ class ClamWrapper(nn.Module):
         elif clam_config['clam_type'] == 'MB':
             self.clam = CLAM_MB(atten_type=clam_config['atten_type'], num_features=num_enmedding_features, dropout=clam_config['drop_out'],
                                 apply_max=clam_config['apply_max'], k_sample=clam_config['k_sample'], n_classes=clam_config['n_classes'])
-            
-    def eval_forward(self, input1):
+
+    def _reshape_input(self, input1):
         shape = input1.shape
         n = shape[1]
         input1 = input1.view(-1,shape[2],shape[3],shape[4])
+        return n, input1
+
+    def get_attention_map(self, input1):
+        n, x = self._reshape_input(input1)        
+        x = self.encoder.forward_features(x)
+        x = x.view(n,-1)
         
-        x = self.encoder.forward_features(input1)
+        A = self.clam.get_attention_map(x)
+        
+        return A
+        
+    def eval_forward(self, input1):
+        n, x = self._reshape_input(input1)        
+        x = self.encoder.forward_features(x)
         x = x.view(n,-1)
         
         h, A = self.clam.intermediate_forward(x)
@@ -318,17 +356,14 @@ class ClamWrapper(nn.Module):
         return bag_logit
         
     def forward(self, input1):
-        shape = input1.shape
-        n = shape[1]
-        input1 = input1.view(-1,shape[2],shape[3],shape[4])
-        
-        x = self.encoder.forward_features(input1)
+        n, x = self._reshape_input(input1)        
+        x = self.encoder.forward_features(x)
         x = x.view(n,-1)
         
         h, A = self.clam.intermediate_forward(x)
         
         bag_logit = self.clam.bag_forward(h, A)
-        inst_logit = self.clam.instance_forward(h)   
+        inst_logit = self.clam.instance_forward(h)
         
         top_p_ids, top_n_ids = self.clam.get_topk_ids(A)
 

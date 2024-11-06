@@ -1,5 +1,5 @@
 import torch
-from torch.amp import autocast
+from torch.cuda.amp import autocast
 
 @torch.no_grad()
 def calc_acc(model, loader, device):
@@ -9,7 +9,7 @@ def calc_acc(model, loader, device):
     for images, labels in iter(loader):
         images = images.to(device)
         labels = labels.to(device)
-        with autocast(device_type='cuda', dtype=torch.float16):
+        with autocast(True):
             bag_logit = model.eval_forward(images)
             _, preds = torch.max(bag_logit, dim=1)
             correct = (preds == labels).sum()

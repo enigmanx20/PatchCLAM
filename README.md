@@ -1,5 +1,5 @@
 # PatchCLAM
-Rewritten CLAM (https://github.com/mahmoodlab/CLAM) for path-based datasets. 
+Rewritten CLAM (https://github.com/mahmoodlab/CLAM) for patch-based datasets. 
 
 ## Strength
 - Easy to understand and modify.
